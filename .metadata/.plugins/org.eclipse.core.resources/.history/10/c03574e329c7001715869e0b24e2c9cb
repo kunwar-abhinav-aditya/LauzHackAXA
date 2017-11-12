@@ -1,0 +1,58 @@
+package com.lauzhack.axa;
+
+import org.bson.Document;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoSocketOpenException;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
+public class RegisterHost {
+
+	static MongoClient mongo;
+	static MongoDatabase db;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	
+	public int register(Student student) {
+		Document details = new Document();
+		int result = 0;
+		String toReturn = "";
+		try {
+			MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+	        db = mongo.getDatabase("homely");
+	        collection = db.getCollection("hosts");
+	        
+	        Document hostDetail = new Document();
+	        hostDetail.put("firstName", student.getFirstName());
+	        hostDetail.put("familyName", student.getFamilyName());
+	        hostDetail.put("username", student.getUserName());
+	        hostDetail.put("password", student.getPassword());
+	        hostDetail.put("address", student.getAddress());
+	        hostDetail.put("postalCode", student.getPostalCode());
+	        hostDetail.put("country", student.getCountry());
+	        hostDetail.put("nationality", student.getNationality());
+	        hostDetail.put("gender", student.getGender());
+	        hostDetail.put("dob", student.getDob());
+	        hostDetail.put("telephone", student.getTelephone());
+	        hostDetail.put("email", student.getEmail());
+	        hostDetail.put("religion", student.getReligion());
+	        hostDetail.put("interests", student.getInterests());
+	        hostDetail.put("languages", student.getLanguages());
+	        hostDetail.put("reason", student.getReason());
+	  
+	        try {
+	        	collection.insertOne(hostDetail);
+	        	result = 1;
+	        }
+	        catch (Exception e) {
+	        	result = 0;
+	        }
+		}
+		catch(MongoSocketOpenException e) {
+			e.printStackTrace();
+		}
+        return result;
+	}
+}

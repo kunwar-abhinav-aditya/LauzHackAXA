@@ -1,0 +1,58 @@
+package com.lauzhack.axa;
+
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Image;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
+
+public class LoginView extends VerticalLayout implements View {
+
+	@Override
+	public void enter(ViewChangeEvent event) {
+		
+    	setWidth("100%");
+    	setHeight("100%");
+    	
+    	HorizontalLayout full = new HorizontalLayout();
+    	full.setWidth("100%");
+    	full.setHeight("100%");
+    	
+    	VerticalLayout center = new VerticalLayout();
+    	center.setHeight("100%");
+    	center.setWidth("40%");
+    	
+    	ThemeResource resource = new ThemeResource("img/homely.PNG");
+    	Image logo = new Image("", resource);
+    	center.addComponent(logo);
+    	
+    	Label welcome = new Label("Welcome to Homely!");
+    	center.addComponent(welcome);
+    	
+    	Button login = new Button("LOGIN");
+    	login.setStyleName("login");
+    	center.addComponent(login);
+    	
+    	Button registerStudent = new Button("Register as a student!");
+    	login.setStyleName("register");
+    	center.addComponent(registerStudent);
+    	
+    	Button registerHost = new Button("Register as a Host!");
+    	login.setStyleName("login");
+    	center.addComponent(registerHost);
+    	
+    	full.addComponent(center);
+    	addComponent(full);
+    	full.setComponentAlignment(center, Alignment.MIDDLE_CENTER);
+	}
+
+}

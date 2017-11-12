@@ -1,0 +1,54 @@
+package com.lauzhack.axa;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.bson.Document;
+
+import com.mongodb.MongoClient;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.VerticalLayout;
+
+public class StudentProfileView extends VerticalLayout implements View {
+
+	static MongoClient mongo;
+	static MongoDatabase db;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	
+	@Override
+	public void enter(ViewChangeEvent event) {
+		FormLayout form = new FormLayout();
+		form.addComponent(new Label("Welcome"));
+		form.addComponent(new Label((String) getUI().getSession().getAttribute("username")));
+		List<Host> hosts = getHostsAvailable();
+		form.addComponent(new Label("You have "+hosts.size()+" new matches!"));
+		//TODO:Grid implementation for students available
+		addComponent(form);
+	}
+
+	private List<Host> getHostsAvailable() {
+		MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+        db = mongo.getDatabase("homely");
+        collection = db.getCollection("hosts");
+        FindIterable<Document> hostsAvailable= collection.find();
+        List<Host> hostsList = new ArrayList<>();
+        for (Document hoster : hostsAvailable) {
+        	Host host = new Host();
+        	host.setFirstName((String) hoster.get("firstName"));
+        	host.setFamilyName((String)hoster.get("familyName"));
+        	host.setCountry((String)hoster.get("country"));
+        	host.setInterests((String)hoster.get("interests"));
+        	hostsList.add(host);
+        }
+        return studentsList;
+	}
+
+}

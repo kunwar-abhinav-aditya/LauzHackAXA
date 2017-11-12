@@ -1,0 +1,146 @@
+package com.lauzhack.axa;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.vaadin.data.Item;
+import com.vaadin.data.util.IndexedContainer;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.StreamResource;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.DateField;
+import com.vaadin.ui.Embedded;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.PasswordField;
+import com.vaadin.ui.ProgressIndicator;
+import com.vaadin.ui.TextArea;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.Upload;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Upload.Receiver;
+
+public class HostsGridView extends VerticalLayout implements View {
+	@Override
+	public void enter(ViewChangeEvent event) {
+		setHeight("100%");
+		setWidth("100%");
+		Panel panel = new Panel("Students");	
+		panel.setWidth("100%");
+		panel.setSizeFull();
+		IndexedContainer icr = new IndexedContainer();
+		icr.addContainerProperty("firstName", String.class, null);
+		icr.addContainerProperty("familyName", String.class, null);
+		icr.addContainerProperty("country", String.class, null);
+		icr.addContainerProperty("interests", String.class, null);
+		icr.addContainerProperty("email", String.class, null);
+		icr.addContainerProperty("phone", String.class, null);
+		
+	    List<Student> studentList = (List<Student>) getUI().getSession().getAttribute("students");
+	    for (Student stud: studentList) {
+	    	Item item = icr.addItem(stud.getFirstName());
+	    	item.getItemProperty("firstName").setValue(stud.getFirstName());
+	    	item.getItemProperty("familyName").setValue(stud.getFamilyName());
+	    	item.getItemProperty("country").setValue(stud.getCountry());
+	    	item.getItemProperty("interests").setValue(stud.getInterests());
+			item.getItemProperty("email").setValue(stud.getEmail());
+			item.getItemProperty("phone").setValue(stud.getTelephone());
+	    }
+	    
+	    HorizontalLayout formLayout = new HorizontalLayout();
+	    formLayout.setWidth("100%");
+	    formLayout.setHeight("100%");
+	    Grid grid = new Grid(icr);
+	    grid.setStyleName("no-vertical-lines-or-border");
+	    grid.setHeight("100%");
+	    grid.setWidth("100%");
+	    grid.getColumn("status").setRenderer(new ImageRenderer());
+	    grid.getColumn("status").setWidth(100);
+	    grid.setColumnOrder("status", "crawlerName", "jobsLastWeek", "jobsThisWeek", "delta", "lastSuccessfulCrawl");
+	    grid.getColumn("crawlerName").setEditable(false);
+	    grid.getColumn("crawlerName").setWidth(200);
+	    grid.getColumn("jobsLastWeek").setEditable(false);
+	    grid.getColumn("jobsLastWeek").setWidth(150);
+	    grid.getColumn("jobsThisWeek").setEditable(false);
+	    grid.getColumn("jobsThisWeek").setWidth(150);
+	    grid.getColumn("delta").setEditable(false);
+	    grid.getColumn("delta").setWidth(125);
+	    grid.getColumn("lastSuccessfulCrawl").setEditable(false);
+	    grid.getColumn("rerun").setHeaderCaption("");
+	    grid.getColumn("rerun").setWidth(200);
+	    grid.getColumn("rerun").setRenderer(new ComponentRenderer());
+	    grid.getColumn("showjobs").setHeaderCaption("");
+	    grid.getColumn("showjobs").setWidth(200);
+	    grid.getColumn("showjobs").setRenderer(new ComponentRenderer());
+	   
+	    
+	    grid.setCellStyleGenerator(new CellStyleGenerator() {
+	        @Override
+	        public String getStyle(CellReference cell) {
+	            if ("delta".equals(cell.getPropertyId())) {
+	            	if (((Double)cell.getValue() > 10) || ((Double)cell.getValue() < -10)) {
+	            		return "red";
+	            	}
+	            	else {
+	            		return "green";
+	            	}
+	            }
+	            else if ("lastSuccessfulCrawl".equals(cell.getPropertyId())) {
+	            	System.out.println((String)cell.getValue());
+	            	if (((String)cell.getValue() == "Last Week")) {
+	            		return "red";
+	            	}
+	            	else {
+	            		return "green";
+	            	}
+	            }
+	            else {
+	            	return "black";
+	            }
+	        }
+	    });
+	    
+	    grid.setImmediate(true);
+	    
+	    formLayout.addComponent(grid);
+	    formLayout.setExpandRatio(grid, 1);
+
+	    panel.setContent(formLayout);
+	    addComponent(panel);
+	}
+	
+	// Rerun a crawler on button click
+	public void onrerunbuttonclick(String crawler) {
+	    try {
+	        ProcessBuilder builder = new ProcessBuilder(
+	                "cmd.exe", "/c", cmd + crawler + ".config");
+	            builder.redirectErrorStream(true);
+	            Process p = builder.start();
+	            BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+	            String line;
+	            while (true) {
+	                line = r.readLine();
+	                if (line == null) { break; }
+	                System.out.println(line);
+	            }
+	    }
+	    catch(Exception e) {
+	        System.out.println(e.toString());
+	        e.printStackTrace();
+	    }
+}

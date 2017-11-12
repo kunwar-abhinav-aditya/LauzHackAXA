@@ -1,0 +1,39 @@
+package com.lauzhack.axa;
+
+import org.bson.Document;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoSocketOpenException;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
+public class Login {
+	static MongoClient mongo;
+	static MongoDatabase jobs;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	
+	public String checkLogin(String username, String password) {
+		
+		Document details = new Document();
+		String toReturn = "";
+		try {
+			MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+	        jobs = mongo.getDatabase("homely");
+	        collection = jobs.getCollection("user");
+	        Document cond = new Document();
+	        cond.append("userName", username);
+	        cond.append("password", password);
+	        details = collection.find(cond).first();
+	        if (details != null) {
+	        	toReturn = "Error";
+	        }
+		}
+		catch(MongoSocketOpenException e) {
+			e.printStackTrace();
+		}
+        return (String)details.get("type");
+	}
+}

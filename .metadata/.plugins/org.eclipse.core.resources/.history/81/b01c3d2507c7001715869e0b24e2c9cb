@@ -1,0 +1,57 @@
+package com.lauzhack.axa;
+
+public class CrawledData {
+    private int status;
+    private String crawlerName;
+    private int jobsThisWeek;
+    private int jobsLastWeek;
+    private String lastSuccessfulCrawl;
+
+    CrawledData(int status, String crawlerName, int jobsThisWeek, int jobsLastWeek, String lastSuccessfulCrawl){
+        this.setStatus(status);
+        this.setCrawlerName(crawlerName);
+        this.setJobsThisWeek(jobsThisWeek);
+        this.setJobsLastWeek(jobsLastWeek);
+        this.setLastSuccessfulCrawl(lastSuccessfulCrawl);
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
+    public String getCrawlerName() {
+        return crawlerName;
+    }
+
+    public void setCrawlerName(String crawlerName) {
+        this.crawlerName = crawlerName;
+    }
+
+    public int getJobsThisWeek() {
+        return jobsThisWeek;
+    }
+
+    public void setJobsThisWeek(int jobsThisWeek) {
+        this.jobsThisWeek = jobsThisWeek;
+    }
+
+    public int getJobsLastWeek() {
+        return jobsLastWeek;
+    }
+
+    public void setJobsLastWeek(int jobsLastWeek) {
+        this.jobsLastWeek = jobsLastWeek;
+    }
+
+    public String getLastSuccessfulCrawl() {
+        return lastSuccessfulCrawl;
+    }
+
+    public void setLastSuccessfulCrawl(String lastSuccessfulCrawl) {
+        this.lastSuccessfulCrawl = lastSuccessfulCrawl;
+    }
+}

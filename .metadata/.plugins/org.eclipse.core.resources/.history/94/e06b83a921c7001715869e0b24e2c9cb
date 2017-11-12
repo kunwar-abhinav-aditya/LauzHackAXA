@@ -1,0 +1,21 @@
+package com.lauzhack.axa;
+
+import java.util.Date;
+
+public class Student {
+	
+	String firstName;
+	String familyName;
+	String address;
+	int postalCode;
+	String country;
+	String nationality;
+	String gender;
+	Date dob;
+	String telephone;
+	String email;
+	String religion;
+	String interests;
+	String languages;
+	String reason;
+}

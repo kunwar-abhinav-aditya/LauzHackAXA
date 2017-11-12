@@ -1,0 +1,10 @@
+package com.lauzhack.axa;
+
+import com.vaadin.spring.annotation.SpringComponent;
+import com.vaadin.spring.annotation.UIScope;
+import com.vaadin.ui.VerticalLayout;
+import org.springframework.stereotype.Component;
+
+@SpringComponent @UIScope
+public class ToDoList extends VerticalLayout{
+}

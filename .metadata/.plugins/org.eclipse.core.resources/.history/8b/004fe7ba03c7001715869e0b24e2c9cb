@@ -1,0 +1,160 @@
+package com.lauzhack.axa;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import com.vaadin.addon.charts.Chart;
+import com.vaadin.addon.charts.model.AxisTitle;
+import com.vaadin.addon.charts.model.AxisType;
+import com.vaadin.addon.charts.model.ChartType;
+import com.vaadin.addon.charts.model.Configuration;
+import com.vaadin.addon.charts.model.Cursor;
+import com.vaadin.addon.charts.model.DataLabels;
+import com.vaadin.addon.charts.model.DataSeries;
+import com.vaadin.addon.charts.model.DataSeriesItem;
+import com.vaadin.addon.charts.model.HorizontalAlign;
+import com.vaadin.addon.charts.model.Legend;
+import com.vaadin.addon.charts.model.ListSeries;
+import com.vaadin.addon.charts.model.PlotOptionsColumn;
+import com.vaadin.addon.charts.model.PlotOptionsLine;
+import com.vaadin.addon.charts.model.PlotOptionsSpline;
+import com.vaadin.addon.charts.model.StackLabels;
+import com.vaadin.addon.charts.model.Stacking;
+import com.vaadin.addon.charts.model.Tooltip;
+import com.vaadin.addon.charts.model.VerticalAlign;
+import com.vaadin.addon.charts.model.XAxis;
+import com.vaadin.addon.charts.model.YAxis;
+import com.vaadin.addon.charts.model.ZoomType;
+import com.vaadin.addon.charts.model.style.Color;
+import com.vaadin.addon.charts.model.style.SolidColor;
+import com.vaadin.addon.charts.model.style.Style;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.ClassResource;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.DateField;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Image;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
+
+public class StudentRegisterView extends VerticalLayout implements View {
+
+	@Override
+	public void enter(ViewChangeEvent event) {
+		
+    	setWidth("100%");
+    	setHeight("100%");
+    	
+		FormLayout form = new FormLayout();
+		form.setWidth("100%");
+		form.setHeight("100%");
+		
+		TextField tf1 = new TextField("Your first name");
+		tf1.setIcon(FontAwesome.USER);
+		form.addComponent(tf1);
+
+		TextField tf2 = new TextField("Your family name");
+		tf2.setIcon(FontAwesome.USER);
+		form.addComponent(tf2);
+		
+		TextField tf3 = new TextField("Complete address");
+		tf3.setIcon(FontAwesome.ROAD);
+		form.addComponent(tf3);
+
+		TextField tf4 = new TextField("Postal code");
+		tf4.setIcon(FontAwesome.ENVELOPE);
+		form.addComponent(tf4);
+		
+		System.out.println("Working Directory = " +
+	              System.getProperty("user.dir"));
+		
+		List countries = new ArrayList<>();
+		BufferedReader br;
+		try {
+			br = new BufferedReader(new FileReader("/resources/countries.txt"));
+			String line = br.readLine();
+		    while (line != null) {
+		    	countries.add(line);
+		        line = br.readLine();
+		    }
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println(countries);
+		ComboBox tf5 = new ComboBox("Country");
+		tf5.setIcon(FontAwesome.FLAG);
+		tf5.addItems(countries);
+		form.addComponent(tf5);
+	
+		List nationalities = new ArrayList<>();
+		try {
+			br = new BufferedReader(new FileReader("/resources/nationalities.txt"));
+			String line = br.readLine();
+		    while (line != null) {
+		    	nationalities.add(line);
+		        line = br.readLine();
+		    }
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		ComboBox tf6 = new ComboBox("Nationality");
+		tf6.setIcon(FontAwesome.USERS);
+		tf6.addItems(nationalities);
+		form.addComponent(tf6);
+	
+		List genders = new ArrayList<>();
+		genders.add("Male");
+		genders.add("Female");
+		genders.add("Don't specify");
+		
+		ComboBox tf7 = new ComboBox("Gender");
+		tf7.setIcon(FontAwesome.TRANSGENDER_ALT);
+		tf7.addItems(genders);
+		form.addComponent(tf7);
+		
+		DateField tf8 = new DateField("Date of Birth");
+		tf8.setIcon(FontAwesome.CALENDAR_TIMES_O);
+		form.addComponent(tf8);
+		
+		TextField tf9 = new TextField("Telephone");
+		tf9.setIcon(FontAwesome.PHONE);
+		form.addComponent(tf9);
+		
+		TextField tf10 = new TextField("Email");
+		tf10.setIcon(FontAwesome.MAIL_FORWARD);
+		form.addComponent(tf10);
+		
+		Button submit = new Button("Submit");
+		form.addComponent(submit);
+		addComponent(form);
+
+	}
+
+}

@@ -1,0 +1,112 @@
+package com.lauzhack.axa;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.bson.types.ObjectId;
+
+import com.vaadin.annotations.DesignRoot;
+import com.vaadin.data.Item;
+import com.vaadin.data.util.IndexedContainer;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.Grid.CellReference;
+import com.vaadin.ui.Grid.CellStyleGenerator;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Image;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.renderers.ButtonRenderer;
+import com.vaadin.ui.renderers.ImageRenderer;
+
+import de.datenhahn.vaadin.componentrenderer.ComponentRenderer;
+
+@DesignRoot
+public class JobsView extends VerticalLayout implements View {
+
+    VerticalLayout menuContent;
+    Panel equalPanel;
+    Button logout;
+    static String crawlerID;
+    
+    public JobsView() throws UnknownHostException {
+    }
+    
+    @Override
+    public void enter(ViewChangeEvent event){
+    	
+    	CrawledDataService cds = new CrawledDataService();
+        String args[] = event.getParameters().split("/");
+        System.out.println("args: "+ args.toString());
+        String crawlerName = args[0];
+        crawlerID = cds.nameToId(crawlerName);
+        System.out.println("crawlerid"+crawlerID.toString());
+        
+        removeAllComponents();
+       	setHeight("100%");
+    	setWidth("100%");
+    	Panel panel = new Panel("Jobs");
+    	panel.addStyleName("captionstyle");
+    	panel.setWidth("100%");
+    	panel.setSizeFull();
+    	IndexedContainer icr = new IndexedContainer();
+    	icr.addContainerProperty("jobTitle", String.class, null);
+    	icr.addContainerProperty("company", String.class, null);
+    	icr.addContainerProperty("jobLocation", String.class, null);
+    	icr.addContainerProperty("jobCategory", String.class, null);
+    	icr.addContainerProperty("jobSubcategory", String.class, null);
+    	icr.addContainerProperty("postedDate", Date.class, null);
+    	icr.addContainerProperty("lastUpdated", Date.class, null);
+    	icr.addContainerProperty("jobDescription", String.class, null);
+    	icr.addContainerProperty("countryCode", String.class, null); 
+    	icr.addContainerProperty("isDeleted", Integer.class, null); 
+    	icr.addContainerProperty("jobID", String.class, null); 
+    	
+        CrawledDataService crawlService = new CrawledDataService();
+        List<Job> jobList = new ArrayList<Job>();
+        jobList = crawlService.showJobs(crawlerID);
+        for (Job job: jobList) {
+        	Item item = icr.addItem(job.getJobID());
+        	item.getItemProperty("jobTitle").setValue(job.getJobTitle());
+        	item.getItemProperty("company").setValue(job.getCompany());
+        	item.getItemProperty("jobLocation").setValue(job.getLocation());
+        	item.getItemProperty("jobCategory").setValue(job.getCategory());
+        	item.getItemProperty("jobSubcategory").setValue(job.getSubcategory());
+        	item.getItemProperty("postedDate").setValue(job.getPostedDate());
+        	item.getItemProperty("lastUpdated").setValue(job.getLastUpdated());
+        	item.getItemProperty("jobDescription").setValue(job.getJobDescription());
+        	item.getItemProperty("countryCode").setValue(job.getCountryCode());
+        	item.getItemProperty("isDeleted").setValue(job.getIsDeleted());
+        	item.getItemProperty("jobID").setValue(job.getJobID());
+        }
+        
+        HorizontalLayout formLayout = new HorizontalLayout();
+        formLayout.setWidth("100%");
+        formLayout.setHeight("100%");
+        Grid grid = new Grid(icr);
+        grid.setStyleName("no-vertical-lines-or-border");
+        grid.setHeight("100%");
+        grid.setWidth("100%");
+        grid.setColumnOrder("jobTitle", "company", "jobLocation", "jobCategory", "jobSubcategory", "postedDate","lastUpdated","jobDescription","countryCode","isDeleted","jobID");
+        grid.getColumn("jobDescription").setWidth(200);
+        grid.setImmediate(true);
+        
+        formLayout.addComponent(grid);
+        formLayout.setExpandRatio(grid, 1);
+
+        panel.setContent(formLayout);
+        addComponent(panel);
+        
+    }
+}

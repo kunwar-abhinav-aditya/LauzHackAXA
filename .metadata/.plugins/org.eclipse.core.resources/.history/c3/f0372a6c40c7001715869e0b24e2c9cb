@@ -1,0 +1,60 @@
+package com.lauzhack.axa;
+
+import org.bson.Document;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoSocketOpenException;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
+public class RegisterHost {
+
+	static MongoClient mongo;
+	static MongoDatabase db;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	
+	public int register(Host host) {
+		Document details = new Document();
+		int result = 0;
+		String toReturn = "";
+		try {
+			MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+	        db = mongo.getDatabase("homely");
+	        collection = db.getCollection("hosts");
+	        
+	        Document hostDetail = new Document();
+	        hostDetail.put("firstName", host.getFirstName());
+	        hostDetail.put("familyName", host.getFamilyName());
+	        hostDetail.put("username", host.getUserName());
+	        hostDetail.put("password", host.getPassword());
+	        hostDetail.put("address", host.getAddress());
+	        hostDetail.put("postalCode", host.getPostalCode());
+	        hostDetail.put("country", host.getCountry());
+	        hostDetail.put("nationality", host.getNationality());
+	        hostDetail.put("gender", host.getGender());
+	        hostDetail.put("dob", host.getDob());
+	        hostDetail.put("telephone", host.getTelephone());
+	        hostDetail.put("email", host.getEmail());
+	        hostDetail.put("religion", host.getReligion());
+	        hostDetail.put("interests", host.getInterests());
+	        hostDetail.put("languages", host.getLanguages());
+	        hostDetail.put("maritalStatus", host.getMaritalStatus());
+	        hostDetail.put("reason", host.getReason());
+	        hostDetail.put("photo", host.getImage());
+	        System.out.println(host.getImage().toString());
+	        try {
+	        	collection.insertOne(hostDetail);
+	        	result = 1;
+	        }
+	        catch (Exception e) {
+	        	result = 0;
+	        }
+		}
+		catch(MongoSocketOpenException e) {
+			e.printStackTrace();
+		}
+        return result;
+	}
+}

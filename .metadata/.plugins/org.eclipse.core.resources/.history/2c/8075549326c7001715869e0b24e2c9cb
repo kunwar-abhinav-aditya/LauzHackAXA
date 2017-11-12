@@ -1,0 +1,62 @@
+package com.lauzhack.axa;
+
+import org.bson.Document;
+import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Morphia;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoSocketOpenException;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
+public class RegisterStudent {
+
+	static MongoClient mongo;
+	static MongoDatabase db;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	
+	public int register(Student student) {
+		Document details = new Document();
+		String toReturn = "";
+		try {
+			MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+	        db = mongo.getDatabase("homely");
+	        collection = db.getCollection("students");
+	        
+	        BasicDBObject studentDetail = new BasicDBObject();
+	        studentDetail.put("", student.getFirstName());
+	        studentDetail.put("", student.getFamilyName());
+	        studentDetail.put("", student.getAddress());
+	        studentDetail.put("", student.getPostalCode());
+	        studentDetail.put("", student.getCountry());
+	        studentDetail.put("", student.getNationality());
+	        studentDetail.put("", student.getGender());
+	        studentDetail.put("", student.getDob());
+	        studentDetail.put("", student.getTelephone());
+	        studentDetail.put("", student.getEmail());
+	        studentDetail.put("", student.getReligion());
+	        studentDetail.put("", student.getInterests());
+	        studentDetail.put("", student.getLanguages());
+	        studentDetail.put("", student.getReason());
+	        
+	        collection.insertOne((Document)student);
+	        Document cond = new Document();
+	        cond.append("userName", username);
+	        cond.append("password", password);
+	        details = collection.find(cond).first();
+	        if (details == null) {
+	        	toReturn = "Error";
+	        }
+	        else {
+	        	toReturn = (String)details.get("type");
+	        }
+		}
+		catch(MongoSocketOpenException e) {
+			e.printStackTrace();
+		}
+        return toReturn;
+	}
+}

@@ -1,0 +1,167 @@
+package com.lauzhack.axa;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+import org.bson.Document;
+
+import com.mongodb.MongoClient;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.vaadin.data.Item;
+import com.vaadin.data.util.IndexedContainer;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.StreamResource;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.DateField;
+import com.vaadin.ui.Embedded;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.Grid.SelectionMode;
+import com.vaadin.ui.Grid.SingleSelectionModel;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.PasswordField;
+import com.vaadin.ui.ProgressIndicator;
+import com.vaadin.ui.TextArea;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.Upload;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Upload.Receiver;
+
+public class HostsGridView extends VerticalLayout implements View {
+	
+	static MongoClient mongo;
+	static MongoDatabase db;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	
+	@Override
+	public void enter(ViewChangeEvent event) {
+		setHeight("100%");
+		setWidth("100%");
+		Panel panel = new Panel("Hosts");	
+		panel.setWidth("100%");
+		panel.setSizeFull();
+		IndexedContainer icr = new IndexedContainer();
+		icr.addContainerProperty("firstName", String.class, null);
+		icr.addContainerProperty("familyName", String.class, null);
+		icr.addContainerProperty("country", String.class, null);
+		icr.addContainerProperty("interests", String.class, null);
+		icr.addContainerProperty("email", String.class, null);
+		icr.addContainerProperty("telephone", String.class, null);
+		
+	    List<Host> hostList = (List<Host>) getUI().getSession().getAttribute("hosts");
+	    for (Host stud: hostList) {
+	    	Item item = icr.addItem(stud.getFirstName());
+	    	item.getItemProperty("firstName").setValue(stud.getFirstName());
+	    	item.getItemProperty("familyName").setValue(stud.getFamilyName());
+	    	item.getItemProperty("country").setValue(stud.getCountry());
+	    	item.getItemProperty("interests").setValue(stud.getInterests());
+			item.getItemProperty("email").setValue(stud.getEmail());
+			item.getItemProperty("telephone").setValue(stud.getTelephone());
+	    }
+	    
+	    HorizontalLayout formLayout = new HorizontalLayout();
+	    formLayout.setWidth("100%");
+	    formLayout.setHeight("100%");
+	    Grid grid = new Grid(icr);
+	    grid.setStyleName("no-vertical-lines-or-border");
+	    grid.setSelectionMode(SelectionMode.SINGLE);
+	    grid.setHeight("50%");
+	    grid.setWidth("100%");
+	    grid.setImmediate(true);
+	    
+	    formLayout.addComponent(grid);
+	    formLayout.setExpandRatio(grid, 1);
+
+	    Button contact = new Button("Contact", new Button.ClickListener() {
+            @Override
+        	public void buttonClick(ClickEvent event) {
+        	    Object selected = ((SingleSelectionModel) grid.getSelectionModel()).getSelectedRow();
+            	sendMail(grid.getContainerDataSource().getItem(selected).getItemProperty("email").getValue());
+        	}
+	    });
+	    contact.setStyleName("primary");
+	    formLayout.addComponent(contact);
+	    
+	    Button logout = new Button("Contact", new Button.ClickListener() {
+            @Override
+        	public void buttonClick(ClickEvent event) {
+        	    Object selected = ((SingleSelectionModel) grid.getSelectionModel()).getSelectedRow();
+            	sendMail(grid.getContainerDataSource().getItem(selected).getItemProperty("email").getValue());
+        	}
+	    });
+	    logout.setStyleName("logout");
+	    formLayout.addComponent(logout);
+	    
+	    panel.setContent(formLayout);
+	    addComponent(panel);
+	}
+	
+	//Sending email to the student
+	private String sendMail(Object mail) { 
+		String status = "Not sent";
+	      String to = mail.toString();
+	      System.out.println(to);
+	      String from = fetchOwnEmail(getUI().getSession().getAttribute("username").toString());
+	      System.out.println(from);
+	      String host = "localhost";
+	      Properties properties = System.getProperties();
+	      properties.setProperty("mail.smtp.host", host);
+	      Session session = Session.getDefaultInstance(properties);
+	      try {
+	         MimeMessage message = new MimeMessage(session);
+	         message.setFrom(new InternetAddress(from));
+	         message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+	         message.setSubject("This is the Subject Line!");
+	         message.setText("This is actual message");
+	         Transport.send(message);
+	         status = "sent";
+	         
+	      } catch (MessagingException mex) {
+	         mex.printStackTrace();
+	      }
+	      return status;
+	}
+	
+	//Fetch own email
+	private String fetchOwnEmail(String username) {
+		Document result = new Document();
+		try {
+			MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+	        db = mongo.getDatabase("homely");
+	        collection = db.getCollection("students");
+			Document doc = new Document();
+			doc.append("username", username);
+			result = collection.find(doc).first();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		return (String) result.get("email");
+		
+	}
+}

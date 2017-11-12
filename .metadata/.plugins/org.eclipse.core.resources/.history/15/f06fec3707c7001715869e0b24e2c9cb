@@ -1,0 +1,362 @@
+package com.lauzhack.axa;
+
+import java.net.UnknownHostException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.security.Key;
+import java.time.LocalDateTime;
+import java.util.*;
+import static com.mongodb.client.model.Accumulators.*;
+import static com.mongodb.client.model.Aggregates.*;
+import static com.mongodb.client.model.Projections.*;
+import static java.util.Arrays.asList;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import com.mongodb.*;
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
+import com.vaadin.server.ExternalResource;
+import com.vaadin.server.FileResource;
+import com.vaadin.ui.Embedded;
+import com.vaadin.ui.Image;
+
+import de.datenhahn.vaadin.componentrenderer.ComponentRenderer;
+
+import org.bson.BasicBSONObject;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
+
+/**
+ * Created by Kunwar_HRForecast on 20-09-2017.
+ */
+@EnableAutoConfiguration(exclude={MongoAutoConfiguration.class})
+public class CrawledDataService {
+
+	static MongoClient mongo;
+	static MongoDatabase jobs;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	static Date crawlStartDate = new GregorianCalendar(2017, Calendar.OCTOBER, 23).getTime();
+	static Date now = null;
+	static Date lastWeek = null;
+	static Date lastToLastWeek = null;
+	static Date threeWeeksBack = null;
+	static Date fourWeeksBack = null;
+	static List<WeeklyInfo> weeklyInfoTotal = new ArrayList<WeeklyInfo>();
+	
+	public static List<WeeklyInfo> getWeeklyInfoTotal() {
+		return weeklyInfoTotal;
+	}
+
+	@SuppressWarnings("resource")
+	CrawledDataService() {
+        now = new Date();
+        
+        Calendar cal = new GregorianCalendar();
+        // Setting date exactly a week before
+        cal.add(Calendar.DAY_OF_MONTH, -7);
+        lastWeek = cal.getTime();
+        
+        // Setting date exactly 2 weeks before
+        cal.add(Calendar.DAY_OF_MONTH, -7);
+        lastToLastWeek = cal.getTime();
+        
+        // Setting date exactly 3 weeks before
+        cal.add(Calendar.DAY_OF_MONTH, -7);
+        threeWeeksBack = cal.getTime();
+        
+        // Setting date exactly 4 weeks before
+        cal.add(Calendar.DAY_OF_MONTH, -7);
+        fourWeeksBack = cal.getTime();
+
+		try {
+			MongoClient mongo = new MongoClient(new MongoClientURI("mongodb://db_jobs_new:RosaMariaMilch@141.0.20.91/db_jobs_new"));
+			// MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+	        jobs = mongo.getDatabase("db_jobs_new");
+	        collection = jobs.getCollection("bas_job_data_ext");
+	        collection_ds = jobs.getCollection("con_job_datasource");
+		}
+		catch(MongoSocketOpenException e) {
+			e.printStackTrace();
+		}
+	}
+	
+    @SuppressWarnings("resource")
+	public void findAll() throws UnknownHostException {
+        ObjectMapper oMapper = new ObjectMapper();
+        Map<ObjectId, String> crawlerDetails = new HashMap<>();
+        FindIterable<Document> crawlers = collection_ds.find();
+        for (Document document : crawlers) {
+            if (document != null) {
+                ObjectId key = new ObjectId(document.get("_id").toString());
+                String value = (String) document.get("source_name");
+                crawlerDetails.put(key, value);
+            }
+
+        }
+
+        Bson aggregates = Aggregates.group("$craJobSourceID_fk",
+                Arrays.asList(Accumulators.sum("jobsLastWeek", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", lastToLastWeek)), new Document("$lte", Arrays.<Object>asList("$craLastUpdated", lastWeek))
+                )), 1, 0))), Accumulators.sum("jobsThisWeek", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", lastWeek)), new Document("$lte", Arrays.<Object>asList("$craLastUpdated", now))
+                )), 1, 0)))));
+
+        List<Document> results = collection.aggregate(Arrays.asList(aggregates)).into(new ArrayList<>());
+        int count_ = 0;
+        for (Document entry : results){
+        	count_ ++;
+            WeeklyInfo weeklyInfo = new WeeklyInfo();
+            double change = 0;    
+            ExternalResource  status = new ExternalResource("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAMAAAC67D+PAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAw1BMVEUAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAD///+2DoreAAAAP3RSTlMAA07J9/fNVAJ4/v///oFQ/fz///39WcH8///9y/D///fw///3wfz9y1D9/P///f1aef7///6CA0/K9/jNVAJWGJtNAAAAAWJLR0RA/tlc2AAAAAd0SU1FB+EKGAkENfPfP/4AAABnSURBVAjXFcpXG4EAAIbRLzJDyKiMsoVC2ev9///K0925ODJUKJqlckVVqUbdajRpSTbtTtfp9RloiIvnM2KsCVMP/IBQM+Y5Fyy1Yp2HDVtF7PaHODlyks6k2eXKTbrr8Xy9P1/9/nbtDiN0VVjaAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDE3LTEwLTI0VDA5OjA0OjUzLTA0OjAw1IdMqAAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxNy0xMC0yNFQwOTowNDo1My0wNDowMKXa9BQAAAAASUVORK5CYII=");
+            String successfulCrawl = "This Week";
+            int jobsThisWeek = oMapper.convertValue(entry.get("jobsThisWeek"), Integer.class);
+            int jobsLastWeek = oMapper.convertValue(entry.get("jobsLastWeek"), Integer.class);
+ 
+            if (jobsThisWeek == 0) {
+            	successfulCrawl = "Last Week";
+            	status = new ExternalResource ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAMAAAC67D+PAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAAAjVBMVEXyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwDyAwD///9LNIhNAAAALXRSTlMAAgguAgJU2vz82lRX/v9XBdP7//vTBS35///5LQXT+9MF/ldU2vz82lQuLghwSZQUAAAAAWJLR0QuVNMQhwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB+EKGAkGGmo4YCUAAABdSURBVAjXTY1HEoJAAARHlqBkWXJOIijz/++xVHHgNH2ZbuABTQgNOmDAtJ4v21EAl57vewyA8M1IyphJiixnUZYFq/qOTctYyo79cN1GTqds/izfdTtlKvH772oOaycHrz8V/98AAAAldEVYdGRhdGU6Y3JlYXRlADIwMTctMTAtMjRUMDk6MDY6MjYtMDQ6MDCIj7orAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE3LTEwLTI0VDA5OjA2OjI2LTA0OjAw+dIClwAAAABJRU5ErkJggg==");
+            }
+            
+            else {
+                change = Math.abs(jobsThisWeek-jobsLastWeek)*1.0/jobsThisWeek;
+                if (change > 0.1) {
+	            	successfulCrawl = "This Week";
+	            	status = new ExternalResource("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAMAAAC67D+PAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAw1BMVEX/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD/pQD///94NuwOAAAAP3RSTlMAA07J9/fNVAJ4/v///oFQ/fz///39WcH8///9y/D///fw///3wfz9y1D9/P///f1aef7///6CA0/K9/jNVAJWGJtNAAAAAWJLR0RA/tlc2AAAAAd0SU1FB+EKGAkHFeOcTPUAAABnSURBVAjXFcpXG4EAAIbRLzJDyKiMsoVC2ev9///K0925ODJUKJqlckVVqUbdajRpSTbtTtfp9RloiIvnM2KsCVMP/IBQM+Y5Fyy1Yp2HDVtF7PaHODlyks6k2eXKTbrr8Xy9P1/9/nbtDiN0VVjaAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDE3LTEwLTI0VDA5OjA3OjIxLTA0OjAwourvmwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxNy0xMC0yNFQwOTowNzoyMS0wNDowMNO3VycAAAAASUVORK5CYII=");
+                }
+            }
+            weeklyInfo.setStatus(status);
+            System.out.println("aaaa");
+            System.out.println(((Document)entry.get("_id")).get("_id"));
+            weeklyInfo.setCrawlerName(crawlerDetails.get(((Document)entry.get("_id")).get("_id")));
+            weeklyInfo.setCrawlerID(((Document)entry.get("_id")).get("_id").toString());
+            weeklyInfo.setJobsThisWeek(jobsThisWeek);
+            weeklyInfo.setJobsLastWeek(jobsLastWeek);
+            weeklyInfo.setSuccessfulCrawl(successfulCrawl);
+            weeklyInfoTotal.add(weeklyInfo);
+        }
+    }
+    
+    @SuppressWarnings("resource")
+	public Map<Integer, List> last4WeeksTotal() throws UnknownHostException {
+        ObjectMapper oMapper = new ObjectMapper();
+        Map<Integer, List> finalToSend = new HashMap<Integer, List>();
+        Map<ObjectId, String> crawlerDetails = new HashMap<>();
+        FindIterable<Document> crawlers = collection_ds.find();
+        for (Document document : crawlers) {
+            if (document != null) {
+                ObjectId key = new ObjectId(document.get("_id").toString());
+                String value = (String) document.get("source_name");
+                crawlerDetails.put(key, value);
+            }
+
+        }
+        
+        
+        Bson aggregates = Aggregates.group("",
+                Arrays.asList(Accumulators.sum("jobsFourWeeksBack", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate)), new Document("$or", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", fourWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craLastUpdated", threeWeeksBack))
+                )), new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", fourWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", threeWeeksBack))
+                )))))), 1, 0))), Accumulators.sum("jobsThreeWeeksBack", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate)), new Document("$or", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", threeWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craLastUpdated", lastToLastWeek))
+                )), new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", threeWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", lastToLastWeek))
+                )))))), 1, 0))), Accumulators.sum("jobsLastWeek", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate)), new Document("$or", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", lastToLastWeek)), new Document("$lte", Arrays.<Object>asList("$craLastUpdated", lastWeek))
+                )), new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", lastToLastWeek)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", lastWeek))
+                )))))), 1, 0))), Accumulators.sum("jobsThisWeek", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate)), new Document("$or", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", lastWeek))
+                )), new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", lastWeek))
+                )))))), 1, 0)))));
+        
+        
+        Bson aggregates_new = Aggregates.group("",
+                Arrays.asList(Accumulators.sum("jobsFourWeeksBack", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", fourWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", threeWeeksBack)), new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate))
+                )), 1, 0))), Accumulators.sum("jobsThreeWeeksBack", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", threeWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", lastToLastWeek)), new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate))
+                )), 1, 0))), Accumulators.sum("jobsLastWeek", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", lastToLastWeek)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", lastWeek)), new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate))
+                )), 1, 0))), Accumulators.sum("jobsThisWeek", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", lastWeek)), new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate))
+                )), 1, 0)))));
+
+        List<Document> results = collection.aggregate(Arrays.asList(aggregates)).into(new ArrayList<>());
+
+        List<Document> newResults = collection.aggregate(Arrays.asList(aggregates_new)).into(new ArrayList<>());
+        List jobsByWeekMap = new ArrayList(); 
+        List jobsByWeekMapNew = new ArrayList(); 
+        for (Document entry : results){
+
+            int jobsThisWeek = oMapper.convertValue(entry.get("jobsThisWeek"), Integer.class);
+            System.out.println("this week:" + jobsThisWeek);
+            int jobsLastWeek = oMapper.convertValue(entry.get("jobsLastWeek"), Integer.class);
+            System.out.println("last week:" + jobsLastWeek);
+            int jobs3WeeksBack = oMapper.convertValue(entry.get("jobsThreeWeeksBack"), Integer.class);
+            System.out.println("3 week:" + jobs3WeeksBack);
+            int jobs4WeeksBack = oMapper.convertValue(entry.get("jobsFourWeeksBack"), Integer.class);    
+            System.out.println("4 week:" + jobs4WeeksBack);
+            jobsByWeekMap.add(jobsThisWeek);
+            jobsByWeekMap.add(jobsLastWeek);
+            jobsByWeekMap.add(jobs3WeeksBack);
+            jobsByWeekMap.add(jobs4WeeksBack);
+        }
+        
+        for (Document entry : newResults){
+
+            int jobsThisWeek = oMapper.convertValue(entry.get("jobsThisWeek"), Integer.class);
+            System.out.println("new this week:" + jobsThisWeek);
+            int jobsLastWeek = oMapper.convertValue(entry.get("jobsLastWeek"), Integer.class);
+            System.out.println("new last:" + jobsLastWeek);
+            int jobs3WeeksBack = oMapper.convertValue(entry.get("jobsThreeWeeksBack"), Integer.class);
+            System.out.println("new 3 week:" + jobs3WeeksBack);
+            int jobs4WeeksBack = oMapper.convertValue(entry.get("jobsFourWeeksBack"), Integer.class); 
+            System.out.println("new 4 week:" + jobs4WeeksBack);
+            jobsByWeekMapNew.add(jobsThisWeek);
+            jobsByWeekMapNew.add(jobsLastWeek);
+            jobsByWeekMapNew.add(jobs3WeeksBack);
+            jobsByWeekMapNew.add(jobs4WeeksBack);
+        }
+        finalToSend.put(1, jobsByWeekMap);
+        finalToSend.put(2, jobsByWeekMapNew);
+        return finalToSend;
+    } 
+    
+    
+    //Delete  last week's results
+    public void deleteLastWeekResults() {
+    	Bson condition = new Document("$gte", lastWeek);
+    	Bson filter = new Document("craLastUpdated", condition);
+    	System.out.println("Starting to delete");
+    	collection.deleteMany(filter);
+    	System.out.println("Delete Successful");
+    }
+    
+    
+    //Run all crawlers 
+    public void runAllTheCrawlers() throws IOException {
+        ProcessBuilder builder = new ProcessBuilder(
+                "cmd.exe", "/c", "cd \"C:\\Users\\Kunwar_HRForecast\\PycharmProjects\\Job_crawlers\\job_crawlers\\framework\\general\" && scrapy crawl -afilename=bosch.config");
+            builder.redirectErrorStream(true);
+            Process p = builder.start();
+            BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line;
+            while (true) {
+                line = r.readLine();
+                if (line == null) { break; }
+                System.out.println(line);
+            }
+    }
+    
+    // Active crawlers
+    public long getActiveCrawlers() {
+    	long activeCrawlers = collection_ds.count();
+    	return activeCrawlers;
+    }
+    
+    // Jobs Crawled
+    public long getJobsCrawled() {
+    	long totalJobs = collection.count();
+    	return totalJobs;
+    }
+    
+    // Issue Crawlers
+    public long getIssueCrawlers() throws UnknownHostException {
+    	findAll();
+    	int issueCrawlers = 0;
+    	System.out.println(weeklyInfoTotal.size());
+    	for (WeeklyInfo wi : weeklyInfoTotal) {
+    		if (wi.getJobsThisWeek() == 0) {
+    			issueCrawlers += 1;
+    		}
+    	}
+    	System.out.println(issueCrawlers);
+    	return issueCrawlers;
+    }
+    
+    // Countries Crawled
+    public long countriesCrawled() {
+    	ArrayList<String> distinct = collection.distinct("craCountryCode", String.class).into(new ArrayList<String>());
+    	return distinct.size();
+    }    
+    
+    // Crawlers by Week
+    public void crawlersByWeek() {
+        Bson aggregates = Aggregates.group("$craJobSourceID_fk",
+                Arrays.asList(Accumulators.sum("CrawlersFourWeeksBack", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate)), new Document("$or", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", fourWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craLastUpdated", threeWeeksBack))
+                )), new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", fourWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", threeWeeksBack))
+                )))))), 1, 0))), Accumulators.sum("CrawlersThreeWeeksBack", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate)), new Document("$or", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", threeWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craLastUpdated", lastToLastWeek))
+                )), new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", threeWeeksBack)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", lastToLastWeek))
+                )))))), 1, 0))), Accumulators.sum("CrawlersLastWeek", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate)), new Document("$or", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", lastToLastWeek)), new Document("$lte", Arrays.<Object>asList("$craLastUpdated", lastWeek))
+                )), new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", lastToLastWeek)), new Document("$lte", Arrays.<Object>asList("$craPostedDate", lastWeek))
+                )))))), 1, 0))), Accumulators.sum("CrawlersThisWeek", new Document("$cond", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(new Document("$gte", Arrays.<Object>asList("$craPostedDate", crawlStartDate)), new Document("$or", Arrays.<Object>asList(new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craLastUpdated", lastWeek))
+                )), new Document("$and", Arrays.<Object>asList(
+                        new Document("$gte", Arrays.<Object>asList("$craPostedDate", lastWeek))
+                )))))), 1, 0)))));
+    }
+    
+    
+    // Show Jobs
+    public List<Job> showJobs(String crawlerID) {
+    	List<Job> jobs = new ArrayList<Job>();
+    	BasicDBObject bdo = new BasicDBObject();
+    	BasicDBObject bdi = new BasicDBObject();
+    	BasicDBObject bdm = new BasicDBObject();
+    	bdm.append("$gte", lastWeek);
+    	bdm.append("$lte", now);
+    	bdo.append("craLastUpdated", bdm);
+    	if (crawlerID!= null) {
+        	bdi.append("_id", new ObjectId(crawlerID));
+        	bdo.append("craJobSourceID_fk", bdi); 
+        	List<Document> results = collection.find(bdo).limit(100).into(new ArrayList<>());
+        	for (Document doc : results) {
+        		Job job = new Job();
+        		job.setJobTitle(doc.get("craJobTitle").toString());
+        		job.setCompany(doc.get("craCompanyName").toString());
+        		job.setCategory(doc.get("craValueChainCategory").toString());
+        		job.setSubcategory(doc.get("craValueChainSubcategory").toString());
+        		job.setCountryCode(doc.get("craCountryCode").toString());
+        		job.setIsDeleted((Integer)doc.get("craIsDeleted"));
+        		job.setJobDescription(doc.get("craJobDescription").toString());
+        		job.setJobID(doc.get("craLocalJobID").toString());
+        		job.setPostedDate((Date)doc.get("craPostedDate"));
+        		job.setLastUpdated((Date)doc.get("craLastUpdated"));
+        		job.setLocation(doc.get("craLocation").toString());
+        		jobs.add(job);
+        	}
+    	}
+    	return jobs;
+    }
+    
+    // Name to ID
+    public String nameToId(String crawlerName) {
+    	BasicDBObject bdo = new BasicDBObject();
+    	bdo.append("source_name", crawlerName);
+    	Document document = collection_ds.find(bdo).first();
+    	System.out.println("document:"+document.toString());
+    	String key = document.get("_id").toString();
+    	return key;
+    }
+}

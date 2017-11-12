@@ -1,0 +1,107 @@
+package com.lauzhack.axa;
+
+import java.util.List;
+import java.util.Properties;
+
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+import org.bson.Document;
+
+import com.vaadin.data.Item;
+import com.vaadin.data.util.IndexedContainer;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.Grid.SelectionMode;
+import com.vaadin.ui.Grid.SingleSelectionModel;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Button.ClickEvent;
+
+public class StudentsGridView extends VerticalLayout implements View {
+	
+	@Override
+	public void enter(ViewChangeEvent event) {
+		setHeight("100%");
+		setWidth("100%");
+		Panel panel = new Panel("Students");	
+		panel.setWidth("100%");
+		panel.setSizeFull();
+		IndexedContainer icr = new IndexedContainer();
+		icr.addContainerProperty("firstName", String.class, null);
+		icr.addContainerProperty("familyName", String.class, null);
+		icr.addContainerProperty("country", String.class, null);
+		icr.addContainerProperty("interests", String.class, null);
+		icr.addContainerProperty("email", String.class, null);
+		icr.addContainerProperty("telephone", String.class, null);
+		
+	    List<Student> studentList = (List<Student>) getUI().getSession().getAttribute("students");
+	    for (Student stud: studentList) {
+	    	Item item = icr.addItem(stud.getFirstName());
+	    	item.getItemProperty("firstName").setValue(stud.getFirstName());
+	    	item.getItemProperty("familyName").setValue(stud.getFamilyName());
+	    	item.getItemProperty("country").setValue(stud.getCountry());
+	    	item.getItemProperty("interests").setValue(stud.getInterests());
+			item.getItemProperty("email").setValue(stud.getEmail());
+			item.getItemProperty("telephone").setValue(stud.getTelephone());
+	    }
+	    
+	    HorizontalLayout formLayout = new HorizontalLayout();
+	    formLayout.setWidth("100%");
+	    formLayout.setHeight("100%");
+	    Grid grid = new Grid(icr);
+	    grid.setStyleName("no-vertical-lines-or-border");
+	    grid.setSelectionMode(SelectionMode.MULTI);
+	    grid.setHeight("50%");
+	    grid.setWidth("100%");
+	    grid.setImmediate(true);
+	    
+	    formLayout.addComponent(grid);
+	    formLayout.setExpandRatio(grid, 1);
+	    Object selected = ((SingleSelectionModel) grid.getSelectionModel()).getSelectedRow();
+	    Button contact = new Button("Contact", new Button.ClickListener() {
+            @Override
+        	public void buttonClick(ClickEvent event) {
+            	sendMail(grid.getContainerDataSource().getItem(selected).getItemProperty("email").getValue());
+        	}
+	    });
+	    contact.setStyleName("primary");
+	    formLayout.addComponent(contact);
+	    panel.setContent(formLayout);
+	    addComponent(panel);
+	}
+	
+	//Sending email to the student
+	private String sendMail(Object mail) { 
+	      String to = mail.toString();
+	      String from = "web@gmail.com";
+	      String host = "localhost";
+	      Properties properties = System.getProperties();
+	      properties.setProperty("mail.smtp.host", host);
+	      Session session = Session.getDefaultInstance(properties);
+	      try {
+	         MimeMessage message = new MimeMessage(session);
+	         message.setFrom(new InternetAddress(from));
+	         message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+	         message.setSubject("This is the Subject Line!");
+	         message.setText("This is actual message");
+	         Transport.send(message);
+	         
+	      } catch (MessagingException mex) {
+	         mex.printStackTrace();
+	      }
+	}
+	
+	//Fetch own email
+	private String fetchOwnEmail(String username) {
+		Document doc = new Document();
+		doc.append("username", username);
+	}
+}

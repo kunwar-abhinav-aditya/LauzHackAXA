@@ -1,0 +1,53 @@
+package com.lauzhack.axa;
+
+import com.vaadin.annotations.Theme;
+import com.vaadin.annotations.Title;
+import com.vaadin.annotations.VaadinServletConfiguration;
+import com.vaadin.navigator.Navigator;
+import com.vaadin.server.VaadinRequest;
+import com.vaadin.server.VaadinServlet;
+import com.vaadin.spring.annotation.SpringUI;
+import com.vaadin.ui.*;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.net.UnknownHostException;
+
+import javax.servlet.annotation.WebServlet;
+
+@SpringUI
+@Theme("hrforecasttooltheme")
+@Title("HRForecast Crawler Tool")
+public class HRForecastCrawlToolUI extends UI {
+	private Navigator navigator;
+	protected static final String LOGINVIEW = "login";
+	protected static final String STUDENTREGISTERVIEW = "studentregister";
+	protected static final String HOSTREGISTERVIEW = "hostregister";
+	protected static final String STUDENTPROFILEVIEW = "studentprofile";
+	protected static final String HOSTPROFILEVIEW = "hostprofile";
+    @Autowired
+    ToDoList todoList;
+    
+    @Override
+    protected void init(VaadinRequest vaadinRequest) {
+    	navigator = new Navigator(this, this);
+    	System.out.println(navigator);
+        navigator.addView("", new StartView());
+        try {
+			navigator.addView(MAINVIEW, new MainView());
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        try {
+			navigator.addView(JOBSVIEW, new JobsView());
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+
+    @WebServlet(urlPatterns = "/*", name = "HRForecastCrawlToolUIServlet", asyncSupported = true)
+    @VaadinServletConfiguration(ui = HRForecastCrawlToolUI.class, productionMode = false)
+    public static class HRForecastCrawlToolUIServlet extends VaadinServlet {
+    }
+}

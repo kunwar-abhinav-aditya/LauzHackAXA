@@ -1,0 +1,357 @@
+package com.lauzhack.axa;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.InputStreamReader;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import com.vaadin.addon.charts.Chart;
+import com.vaadin.addon.charts.model.AxisTitle;
+import com.vaadin.addon.charts.model.AxisType;
+import com.vaadin.addon.charts.model.ChartType;
+import com.vaadin.addon.charts.model.Configuration;
+import com.vaadin.addon.charts.model.Cursor;
+import com.vaadin.addon.charts.model.DataLabels;
+import com.vaadin.addon.charts.model.DataSeries;
+import com.vaadin.addon.charts.model.DataSeriesItem;
+import com.vaadin.addon.charts.model.HorizontalAlign;
+import com.vaadin.addon.charts.model.Legend;
+import com.vaadin.addon.charts.model.ListSeries;
+import com.vaadin.addon.charts.model.PlotOptionsColumn;
+import com.vaadin.addon.charts.model.PlotOptionsLine;
+import com.vaadin.addon.charts.model.PlotOptionsSpline;
+import com.vaadin.addon.charts.model.StackLabels;
+import com.vaadin.addon.charts.model.Stacking;
+import com.vaadin.addon.charts.model.Tooltip;
+import com.vaadin.addon.charts.model.VerticalAlign;
+import com.vaadin.addon.charts.model.XAxis;
+import com.vaadin.addon.charts.model.YAxis;
+import com.vaadin.addon.charts.model.ZoomType;
+import com.vaadin.addon.charts.model.style.Color;
+import com.vaadin.addon.charts.model.style.SolidColor;
+import com.vaadin.addon.charts.model.style.Style;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.ClassResource;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Image;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.themes.ValoTheme;
+
+public class StartView extends VerticalLayout implements View {
+    private Map<Integer, List> jobsByWeek;
+    private Long activeTotalCrawlers;
+    private Long jobsCrawled;
+    private Long countriesCrawled;
+    private Long issuecrawlers;
+    protected static final String MAINVIEW = "main";
+    static String crawlCommand = "cd C:\\Users\\Kunwar_HRForecast\\Documents\\GitHub\\job_crawlers\\framework\\general && scrapy crawl general -afilename=";
+    
+    public StartView() {
+    	setWidth("100%");
+    	setHeight("100%");
+    	setupLayout();
+    }
+
+    public void setupLayout(){
+    	// setSizeFull();
+        try {
+            addForm();
+        }
+        catch (Exception e) {
+        	e.printStackTrace();
+        }
+    }
+    
+    
+    private void addForm() throws UnknownHostException {
+    	
+        CrawledDataService crawlService = new CrawledDataService();
+        jobsByWeek = crawlService.last4WeeksTotal();
+        activeTotalCrawlers = crawlService.getActiveCrawlers();
+        jobsCrawled = crawlService.getJobsCrawled();
+        countriesCrawled = crawlService.countriesCrawled();
+        issuecrawlers = crawlService.getIssueCrawlers();
+        
+        VerticalLayout overall = new VerticalLayout();
+        overall.setStyleName("white");
+        HorizontalLayout crawlDetails = new HorizontalLayout();
+        //crawlDetails.setStyleName("white");
+        Panel panel = new Panel("Crawled Jobs");
+        Chart xyz = getChart();
+        panel.setContent(xyz);
+        
+        crawlDetails.addComponent(panel);
+        
+        VerticalLayout buttonsContainer = new VerticalLayout();
+        buttonsContainer.addComponent(new HorizontalLayout());
+        Image deleteLastWeek = new Image(null, new ThemeResource("images/delete.PNG"));
+        deleteLastWeek.addClickListener(e -> deletelastweekresults());
+        
+        /*
+        Button deleteLastWeek  = new Button("Delete last week results", new Button.ClickListener() {
+        	@Override
+        	public void buttonClick(ClickEvent event) {
+        		CrawledDataService cds = new CrawledDataService();
+        		cds.deleteLastWeekResults();
+        		new StartView();
+        	}
+        });
+        */
+        
+        //deleteLastWeek.setIcon(new ThemeResource("images/delete.png"));
+        //deleteLastWeek.setIcon(FontAwesome.GG);
+        //deleteLastWeek.addStyleName(ValoTheme.BUTTON_PRIMARY);
+        ///deleteLastWeek.setStyleName("hrforecast_orange");
+        buttonsContainer.addComponent(deleteLastWeek);
+        
+        Image runAll = new Image(null, new ThemeResource("images/run.PNG"));
+        runAll.addClickListener(e -> runAllCrawlers());
+        
+        /*
+        Button runAll  = new Button("Run all crawlers", new Button.ClickListener() {
+        	@Override
+        	public void buttonClick(ClickEvent event) {
+        		runAllCrawlers();
+        	}
+        });
+        */
+        
+        //runAll.setIcon(new ThemeResource("images/run.png"));
+        //runAll.setIcon(FontAwesome.GG);
+        // addButton.addStyleName(ValoTheme.BUTTON_PRIMARY);
+        //runAll.addStyleName("hrforecast_orange");
+        buttonsContainer.addComponent(runAll);
+        buttonsContainer.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+        buttonsContainer.setSpacing(true);
+        
+    	crawlDetails.addComponent(buttonsContainer);
+        crawlDetails.setSpacing(true);
+        
+        HorizontalLayout details = new HorizontalLayout();
+        
+        Panel activeCrawlers = new Panel();
+        VerticalLayout ac1 = new VerticalLayout();
+        activeCrawlers.setHeight("150");
+        activeCrawlers.setWidth("241");
+        Label tot = new Label(activeTotalCrawlers.toString());
+        tot.setStyleName("hrf_text");
+        ac1.addComponent(tot);
+        ac1.addComponent(new Label("Active Crawlers"));
+        Image graph = new Image(null, new ThemeResource("images/rsz_graph.png"));
+        ac1.addComponent(graph);
+        activeCrawlers.setContent(ac1);
+        details.addComponent(activeCrawlers);
+        
+        Panel issueCrawlers = new Panel();
+        VerticalLayout ac2 = new VerticalLayout();
+        ac2.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+        issueCrawlers.setHeight("150");
+        issueCrawlers.setWidth("241");
+        Label iss = new Label(issuecrawlers.toString());
+        iss.setStyleName("hrf_text");
+        ac2.addComponent(iss);
+        ac2.addComponent(new Label("Crawlers have issues"));
+        ac2.addComponent(graph);
+        Image addButton = new Image(null, new ThemeResource("images/rsz_1gotonextpage.png"));
+        addButton.addClickListener(e -> getUI().getNavigator().navigateTo(MAINVIEW));
+        //addButton.addStyleName("my-img-button");
+        
+        //Button addButton  = new Button("Health Check", new Button.ClickListener() {
+        //	@Override
+        //	public void buttonClick(ClickEvent event) {
+        //	getUI().getNavigator().navigateTo(MAINVIEW);
+        //	}
+        //});
+        //addButton.setIcon(new ThemeResource("images/gotonextpage.PNG"));
+        //addButton.setIcon(FontAwesome.GG);
+        //addButton.addStyleName(ValoTheme.BUTTON_PRIMARY);
+        //addButton.addStyleName("hrforecast_orange");
+        ac2.addComponent(addButton);
+        issueCrawlers.setContent(ac2);
+        details.addComponent(issueCrawlers);
+        
+        Panel totalJobsCrawled = new Panel();
+        VerticalLayout ac3 = new VerticalLayout();
+        ac3.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+        totalJobsCrawled.setHeight("150");
+        totalJobsCrawled.setWidth("241");
+        Label job = new Label(jobsCrawled.toString());
+        job.setStyleName("hrf_text");
+        ac3.addComponent(job);
+        ac3.addComponent(new Label("Jobs Crawled"));
+        ac3.addComponent(graph);
+        totalJobsCrawled.setContent(ac3);
+        details.addComponent(totalJobsCrawled);
+        
+        Panel countries = new Panel();
+        VerticalLayout ac4 = new VerticalLayout();
+        ac4.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+        countries.setHeight("150");
+        countries.setWidth("241");
+        Label cou = new Label(countriesCrawled.toString());
+        cou.setStyleName("hrf_text");
+        ac4.addComponent(cou);
+        ac4.addComponent(new Label("Countries Crawled"));
+        ac4.addComponent(graph);
+        totalJobsCrawled.setContent(ac3);
+        countries.setContent(ac4);
+        details.addComponent(countries);
+        
+        details.setSpacing(true);
+        
+        overall.addComponent(crawlDetails);
+        overall.addComponent(details);
+        overall.setSpacing(true);
+        addComponent(overall);
+        
+    }
+    
+    private void deletelastweekresults() {
+		CrawledDataService cds = new CrawledDataService();
+		cds.deleteLastWeekResults();
+		new StartView();
+	}
+
+	private Chart getChart() throws UnknownHostException {
+  	   Chart chart = new Chart(ChartType.COLUMN);
+  	   chart.setWidth("1000");
+  	   chart.setHeight("400");
+  	   
+  	   Configuration conf = chart.getConfiguration();
+  	   conf.getChart().setZoomType(ZoomType.XY);
+  	   conf.getTitle().setText(null);
+  	   //conf.getChart().setType(ChartType.COLUMN);
+        // conf.getLegend().setEnabled(false);
+        XAxis x = new XAxis();
+        x.setCategories(new String[] { "This week", "Last week", "2 weeks back",
+                "3 weeks back"});
+        x.setType(AxisType.CATEGORY);
+        conf.addxAxis(x);
+        
+        YAxis y = new YAxis();
+        y.setMin(0);
+        AxisTitle title = new AxisTitle("Number of Jobs Crawled");
+        y.setTitle(title);
+        conf.addyAxis(y);
+        
+        StackLabels sLabels = new StackLabels(true);
+        y.setStackLabels(sLabels);
+        
+        YAxis y_crawlers = new YAxis();
+        y_crawlers.setGridLineWidth(0);
+        y_crawlers.setMin(0);
+        title = new AxisTitle("Crawlers running");
+        y_crawlers.setTitle(title);
+        y_crawlers.setOpposite(true);
+        conf.addyAxis(y_crawlers);
+        
+        Legend legend = new Legend();
+        legend.setAlign(HorizontalAlign.RIGHT);
+        legend.setFloating(true);
+        legend.setVerticalAlign(VerticalAlign.TOP);
+        legend.setX(-100);
+        legend.setY(20);
+        conf.setLegend(legend);
+
+        Tooltip tooltip = new Tooltip();
+        tooltip.setFormatter("function() { return '<b>'+ this.x +'</b><br/>"
+                + "'+this.series.name +': '+ this.y +'<br/>'+'Total: '+ this.point.stackTotal;}");
+        conf.setTooltip(tooltip);
+        
+        PlotOptionsColumn column = new PlotOptionsColumn();
+        column.setStacking(Stacking.NORMAL);
+        DataLabels labels = new DataLabels(true);
+        Style style=new Style();
+        style.setTextShadow("0 0 3px black");
+        labels.setStyle(style);
+        labels.setColor(new SolidColor("white"));
+        column.setDataLabels(labels);
+        conf.setPlotOptions(column);
+        column.setCursor(Cursor.POINTER);
+        column.setDataLabels(new DataLabels(true));
+
+        List thisWeeksJobs = jobsByWeek.get(1);
+        List thisWeeksNewJobs = jobsByWeek.get(2);
+        List thisWeeksOldJobs = new ArrayList(thisWeeksJobs.size());
+        for (int i=0; i <thisWeeksJobs.size(); i++) {
+        	int num = (Integer)thisWeeksJobs.get(i) - (Integer)thisWeeksNewJobs.get(i);
+        	thisWeeksOldJobs.add(num);
+        }
+        
+        DataSeries oldJobs = new DataSeries(thisWeeksOldJobs);
+        DataSeries newJobs = new DataSeries(thisWeeksNewJobs);
+        
+        oldJobs.setName("Old Jobs");
+        PlotOptionsColumn plotOptionsColumn = new PlotOptionsColumn();
+        plotOptionsColumn.setColor(new SolidColor("#FF9900"));
+        plotOptionsColumn.setPointWidth(70);
+        //plotOptionsColumn.setColorByPoint(true);
+        oldJobs.setPlotOptions(plotOptionsColumn);
+        conf.addSeries(newJobs);
+        
+        newJobs.setName("New Jobs");
+        PlotOptionsColumn plotOptionsColumn_ = new PlotOptionsColumn();
+        plotOptionsColumn_.setColor(new SolidColor("#FFBE5A"));
+        plotOptionsColumn_.setPointWidth(70);
+        //plotOptionsColumn_.setColorByPoint(true);
+        newJobs.setPlotOptions(plotOptionsColumn_);
+        conf.addSeries(oldJobs);
+        
+        DataSeries series = new DataSeries();
+        PlotOptionsLine plotOptions = new PlotOptionsLine();
+		plotOptions.setColor(new SolidColor("#808080"));
+        series.setPlotOptions(plotOptions);
+        series.setName("Crawlers running");
+        //series.setyAxis(2);
+        series.setData(100, 110, 112, 114);
+        conf.addSeries(series);
+        
+        return chart;
+ 	}
+    
+
+	@Override
+	public void enter(ViewChangeEvent event) {
+		// TODO Auto-generated method stub
+	}
+	
+    // Rerun a crawler on button click
+    public void runAllCrawlers() {
+        try {
+			BufferedReader br = new BufferedReader(new FileReader(new File(getClass().getClassLoader().getResource("crawlList.config").getFile())));
+        	String line;
+        	while ((line = br.readLine()) != null) {
+        		System.out.println(line);
+                ProcessBuilder builder = new ProcessBuilder("cmd.exe", "/c", crawlCommand + line + ".config");
+                builder.redirectErrorStream(true);
+                Process p = builder.start();
+                BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                String lineInner;
+                while (true) {
+                	lineInner = r.readLine();
+                    if (lineInner == null) { break; }
+                    	System.out.println(lineInner);
+                }
+        	}
+        	br.close();
+        }
+        catch(Exception e) {
+            System.out.println(e.toString());
+            e.printStackTrace();
+        }
+		
+    }
+}

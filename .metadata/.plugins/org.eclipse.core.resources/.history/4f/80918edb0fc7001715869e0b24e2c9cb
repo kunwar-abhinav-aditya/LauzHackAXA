@@ -1,0 +1,28 @@
+package com.lauzhack.axa;
+
+import org.bson.Document;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoSocketOpenException;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
+public class Login {
+	static MongoClient mongo;
+	static MongoDatabase jobs;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	
+	checkLogin() {
+		try {
+			MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+	        jobs = mongo.getDatabase("db_jobs_new");
+	        collection = jobs.getCollection("bas_job_data_ext");
+	        collection_ds = jobs.getCollection("con_job_datasource");
+		}
+		catch(MongoSocketOpenException e) {
+			e.printStackTrace();
+		}
+	}
+}

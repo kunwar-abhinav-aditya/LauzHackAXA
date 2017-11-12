@@ -1,0 +1,7 @@
+package com.lauzhack.axa;
+
+public class Host {
+	String firstname;
+	String familyname;
+	
+}

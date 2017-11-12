@@ -1,0 +1,101 @@
+package com.lauzhack.axa;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.bson.Document;
+
+import com.mongodb.MongoClient;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.Page;
+import com.vaadin.server.VaadinSession;
+import com.vaadin.server.WrappedSession;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
+import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Button.ClickEvent;
+
+public class HostProfileView extends VerticalLayout implements View {
+
+	static MongoClient mongo;
+	static MongoDatabase db;
+	static MongoCollection<Document> collection;
+	static MongoCollection<Document> collection_ds;
+	protected static final String LOGINVIEW = "";
+	protected static final String STUDENTSGRIDVIEW = "studentsgridview";
+	static FormLayout form = new FormLayout();
+	static List<Student> students = new ArrayList<>();
+	
+	@Override
+	public void enter(ViewChangeEvent event) {
+		setWidth("100%");
+		setHeight("100%");
+		setMargin(true);
+		FormLayout form = new FormLayout();
+		List<Student> students = new ArrayList();
+		form.setWidth("20%");
+		form.setHeight("100%");
+
+		Label welcome = new Label("Welcome "+((String)getUI().getSession().getAttribute("username"))+" to your Profile!");
+		form.addComponent(welcome);
+		students = getStudentsAvailable();
+		Label info = new Label("You have "+students.size()+" student matches!");
+		form.addComponent(info);
+		HorizontalLayout hor = new HorizontalLayout();
+		hor.setSpacing(true);
+    	Button seeDetails = new Button("Click for More!", new Button.ClickListener() {
+            @Override
+        	public void buttonClick(ClickEvent event) {
+            	getUI().getNavigator().navigateTo(HOSTSGRIDVIEW);
+        	}
+        });
+    	seeDetails.setStyleName("primary");
+    	hor.addComponent(seeDetails);
+    	Button logout = new Button("Logout", new Button.ClickListener() {
+            @Override
+        	public void buttonClick(ClickEvent event) {
+            	VaadinSession vSession = VaadinSession.getCurrent();
+            	WrappedSession httpSession = vSession.getSession();
+            	httpSession.invalidate();
+            	Page.getCurrent().setLocation("/axa");
+        	}
+        });
+    	logout.setStyleName("logout");
+		hor.addComponent(logout);
+    	form.addComponent(hor);
+		form.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+		addComponent(form);
+		setComponentAlignment(form, Alignment.MIDDLE_CENTER);
+		getUI().getSession().setAttribute("hosts", hosts);
+		String user = (String) getUI().getSession().getAttribute("username");
+		System.out.println(user);
+	}
+
+	private List<Student> getStudentsAvailable() {
+		MongoClient mongo = new MongoClient(new ServerAddress("localhost", 27017));
+        db = mongo.getDatabase("homely");
+        collection = db.getCollection("students");
+        FindIterable<Document> studentsAvailable= collection.find();
+        List<Student> studentsList = new ArrayList<>();
+        for (Document student : studentsAvailable) {
+        	Student stud = new Student();
+        	stud.setFirstName((String) student.get("firstName"));
+        	stud.setFamilyName((String)student.get("familyName"));
+        	stud.setCountry((String)student.get("country"));
+        	stud.setInterests((String)student.get("interests"));
+        	stud.setEmail((String)student.get("email"));
+        	stud.setTelephone((String)student.get("telephone"));
+        	studentsList.add(stud);
+        }
+        return studentsList;
+	}
+
+}

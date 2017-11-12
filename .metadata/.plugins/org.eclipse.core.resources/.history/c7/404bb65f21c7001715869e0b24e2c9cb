@@ -1,0 +1,19 @@
+package com.lauzhack.axa;
+
+public class Host {
+	String firstName;
+	String familyName;
+	String address;
+	int postalCode;
+	String country;
+	String nationality;
+	String gender;
+	Date dob;
+	String telephone;
+	String email;
+	String religion;
+	String interests;
+	String languages;
+	String maritalStatus;
+	String reason;
+}

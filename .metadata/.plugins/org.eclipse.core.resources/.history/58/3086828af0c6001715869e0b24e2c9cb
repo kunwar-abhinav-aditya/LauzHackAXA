@@ -1,0 +1,49 @@
+package com.lauzhack.axa;
+
+import com.vaadin.navigator.View;
+import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.UserError;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.FormLayout;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.TextField;
+import com.vaadin.ui.VerticalLayout;
+
+public class StudentRegisterView extends VerticalLayout implements View {
+
+	@Override
+	public void enter(ViewChangeEvent event) {
+		
+		FormLayout form = new FormLayout();
+		TextField tf1 = new TextField("Your first name");
+		tf1.setIcon(FontAwesome.USER);
+		form.addComponent(tf1);
+
+		TextField tf2 = new TextField("Your family name");
+		tf1.setIcon(FontAwesome.USER);
+		form.addComponent(tf2);
+		
+		TextField tf3 = new TextField("Complete address");
+		tf2.setIcon(FontAwesome.ROAD);
+		form.addComponent(tf3);
+
+		TextField tf4 = new TextField("Postal code");
+		tf3.setIcon(FontAwesome.ENVELOPE);
+		form.addComponent(tf4);
+		
+		TextField tf5 = new TextField("Country");
+		tf3.setIcon(FontAwesome.FLAG);
+		form.addComponent(tf5);
+	
+		// normally comes from validation by Binder
+		tf3.setComponentError(new UserError("Doh!"));
+		
+		Button submit = new Button("Submit");
+		form.addComponent(submit);
+    	
+
+	}
+
+}

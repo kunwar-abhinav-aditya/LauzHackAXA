@@ -1,0 +1,69 @@
+package com.my.HRForecastCrawlTool;
+
+import com.vaadin.server.ExternalResource;
+import com.vaadin.ui.Embedded;
+import com.vaadin.ui.Image;
+
+import de.datenhahn.vaadin.componentrenderer.ComponentRenderer;
+
+/**
+ * Created by Kunwar_HRForecast on 01.10.2017.
+ */
+public class WeeklyInfo {
+
+    private ExternalResource status;
+    private String crawlerName;
+    private String crawlerID;
+    private long jobsThisWeek;
+    private long jobsLastWeek;
+	private String successfulCrawl;
+
+    public ExternalResource  getStatus() {
+        return status;
+    }
+
+    public void setStatus(ExternalResource  status) {
+        this.status = status;
+    }
+
+    public String getCrawlerName() {
+        return crawlerName;
+    }
+
+    public void setCrawlerName(String crawlerName) {
+        this.crawlerName = crawlerName;
+    }
+
+    public String getCrawlerID() {
+        return crawlerID;
+    }
+
+    public void setCrawlerID(String crawlerID) {
+        this.crawlerID = crawlerID;
+    }
+    
+    public long getJobsThisWeek() {
+        return jobsThisWeek;
+    }
+
+    public void setJobsThisWeek(long jobsThisWeek) {
+        this.jobsThisWeek = jobsThisWeek;
+    }
+
+    public long getJobsLastWeek() {
+        return jobsLastWeek;
+    }
+
+    public void setJobsLastWeek(long jobsLastWeek) {
+        this.jobsLastWeek = jobsLastWeek;
+    }
+
+    public String getSuccessfulCrawl() {
+        return successfulCrawl;
+    }
+
+    public void setSuccessfulCrawl(String successfulCrawl) {
+        this.successfulCrawl = successfulCrawl;
+    }
+
+}
